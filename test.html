@@ -7,17 +7,17 @@
 <script type="text/javascript" src="bitstream.js"></script>
 <script type="text/javascript">
 function testnum2bits() {
-	assertArrayEquals(BitStream.prototype.num2bits(128, 8), [1,0,0,0,0,0,0,0]);
-	assertArrayEquals(BitStream.prototype.num2bits(111, 8), [0,1,1,0,1,1,1,1]);
-	assertArrayEquals(BitStream.prototype.num2bits(111, 8), [0,1,1,0,1,1,1,1]);
+	assertArrayEquals(BitStream.num2bits(128, 8), [1,0,0,0,0,0,0,0]);
+	assertArrayEquals(BitStream.num2bits(111, 8), [0,1,1,0,1,1,1,1]);
+	assertArrayEquals(BitStream.num2bits(111, 8), [0,1,1,0,1,1,1,1]);
 }
 function testbits2num() {
-	assertEquals(BitStream.prototype.bits2num([1,0,0,0,0,0,0,0]), 128);
-	assertEquals(BitStream.prototype.bits2num([0,1,1,0,1,1,1,1]), 111);
+	assertEquals(BitStream.bits2num([1,0,0,0,0,0,0,0]), 128);
+	assertEquals(BitStream.bits2num([0,1,1,0,1,1,1,1]), 111);
 }
 function testbits2num() {
-	assertEquals(BitStream.prototype.bits2num([1,0,0,0,0,0,0,0]), 128);
-	assertEquals(BitStream.prototype.bits2num([0,1,1,0,1,1,1,1]), 111);
+	assertEquals(BitStream.bits2num([1,0,0,0,0,0,0,0]), 128);
+	assertEquals(BitStream.bits2num([0,1,1,0,1,1,1,1]), 111);
 }
 function testBytefromBits() {
 	var byte = new Byte();

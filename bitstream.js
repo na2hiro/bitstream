@@ -13,51 +13,59 @@ Byte.prototype={
 		return mask;
 	},
 	fromBits: function(bits){
-		var ret, add;
-		if(bits.length > 8-this.ptr){
-			ret = bits.splice((8-this.ptr)-bits.length);
-			add = bits;
-		}else{
-			add = bits;
-			ret = [];
-		}
-		this.bits |= this.bits2num(bits)<<8-this.ptr-bits.length;
-		this.ptr+=bits.length;
-		
-		return ret;
+		//fromByteCodeを使うべき
+		return this.fromByteCode(BitStream.bits2num(bits), bits.length);
 	},
 	toByteCode: function(){
 		return this.bits;
 	},
 	fromByteCode: function(byteCode, length){
-		var bits=[];
-		for(var i=0; i<length; i++){
-			bits.unshift((byteCode>>i)%2);
+		var formerlen, latterlen, add, ret;
+		if(this.ptr+length>8){
+			formerlen = 8-this.ptr;
+			latterlen = length-formerlen;
+			add = byteCode>>latterlen
+			ret = BitStream.num2bits(byteCode & (0xff >> 8-latterlen), latterlen);
+		}else{
+			formerlen = length;
+			add = byteCode << 8-(this.ptr+length);
+			ret = [];
 		}
-		return this.fromBits(bits);
+		this.bits |= add;
+		this.ptr+=formerlen;
+		return ret;
 	},
 	toBitsString: function(){
 		return ("00000000"+this.bits.toString(2)).slice(-8);
 	},
 	getBit: function(ptr){
-		return this.bits & (128>>ptr) ? true : false;
+		return this.bits & (128>>ptr) ? 1 : 0;
 	},
 	fill: function(){
-		;
-	},
-	bits2num: function(bits){
-		var ret=0;
-		bits.forEach(function(bit){
-			ret<<=1;
-			ret|=bit?1:0;
-		});
-		return ret;
+		this.ptr=8;
 	}
 };
 
 function BitStream(){
 	this.bytes=[];
 }
+BitStream.bits2num = function(bits){
+	var ret=0;
+	bits.forEach(function(bit){
+		ret<<=1;
+		ret|=bit?1:0;
+	});
+	return ret;
+};
+BitStream.num2bits = function(num, keta){
+	//なるべく非推奨
+	var ret=[];
+	for(var i=0; i<keta; i++){
+		ret.unshift(num%2);
+		num>>=1;
+	}
+	return ret;
+};
 BitStream.prototype={
 	bytes: [],
 	ptrByte: 0,
@@ -85,25 +93,6 @@ BitStream.prototype={
 		}
 		return ret;
 	},
-	bits2num: function(bits){
-		//なるべく非推奨
-//		console.log(bits.join(""));
-		var num=0;
-		bits.forEach(function(bit){
-			num*=2;
-			num+=bit?1:0;
-		});
-		return num;
-	},
-	num2bits: function(num, keta){
-		//なるべく非推奨
-		var ret=[];
-		for(var i=0; i<keta; i++){
-			ret.unshift(num%2);
-			num>>=1;
-		}
-		return ret;
-	},
 	get: function(bytes, offset, length){
 		var formerlen, latterlen;
 		if(offset+length>8){
@@ -113,12 +102,12 @@ BitStream.prototype={
 			formerlen = length;
 			latterlen = 0;
 		}
-		var bits = this.num2bits(this.bytes[bytes].substr(offset, formerlen), formerlen);
+		var bits = BitStream.num2bits(this.bytes[bytes].substr(offset, formerlen), formerlen);
 //		console.log(this.bytes[bytes].substr(offset, formerlen), bits);
 		if(latterlen==0){
 			return bits;
 		}else{
-			return bits.concat(this.num2bits(this.bytes[bytes+1].substr(0, latterlen), latterlen));
+			return bits.concat(BitStream.num2bits(this.bytes[bytes+1].substr(0, latterlen), latterlen));
 		}
 	},
 /*	forEach: function(bits, callback){
@@ -147,22 +136,22 @@ BitStream.prototype={
 		var str="";
 		while(1){
 			if(ptr>=len) break;
-			str+=this.base64String[this.bits2num(this.get(ptr, 0, 6))];
+			str+=this.base64String[BitStream.bits2num(this.get(ptr, 0, 6))];
 			var bits=this.get(ptr, 6, 2);
 			ptr++;
 			if(ptr>=len){
-				str+=this.base64String[this.bits2num(bits.concat([0,0,0,0]))]+"==";
+				str+=this.base64String[BitStream.bits2num(bits.concat([0,0,0,0]))]+"==";
 				break;
 			}
-			str+=this.base64String[this.bits2num(bits.concat(this.get(ptr, 0, 4)))];
+			str+=this.base64String[BitStream.bits2num(bits.concat(this.get(ptr, 0, 4)))];
 			bits=this.get(ptr, 4, 4);
 			ptr++;
 			if(ptr>=len){
-				str+=this.base64String[this.bits2num(bits.concat([0,0]))]+"=";
+				str+=this.base64String[BitStream.bits2num(bits.concat([0,0]))]+"=";
 				break;
 			}
-			str+=this.base64String[this.bits2num(bits.concat(this.get(ptr, 0, 2)))];
-			str+=this.base64String[this.bits2num(this.get(ptr, 2, 6))];
+			str+=this.base64String[BitStream.bits2num(bits.concat(this.get(ptr, 0, 2)))];
+			str+=this.base64String[BitStream.bits2num(this.get(ptr, 2, 6))];
 			ptr++;
 		}
 		return str;
