@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sample Test File</title>
+<script type="text/javascript" src="jsunit/app/jsUnitCore.js"></script>
+<script type="text/javascript" src="bitstream.js"></script>
+<script type="text/javascript">
+function testnum2bits() {
+	assertArrayEquals(BitStream.prototype.num2bits(128, 8), [1,0,0,0,0,0,0,0]);
+	assertArrayEquals(BitStream.prototype.num2bits(111, 8), [0,1,1,0,1,1,1,1]);
+	assertArrayEquals(BitStream.prototype.num2bits(111, 8), [0,1,1,0,1,1,1,1]);
+}
+function testbits2num() {
+	assertEquals(BitStream.prototype.bits2num([1,0,0,0,0,0,0,0]), 128);
+	assertEquals(BitStream.prototype.bits2num([0,1,1,0,1,1,1,1]), 111);
+}
+function testbits2num() {
+	assertEquals(BitStream.prototype.bits2num([1,0,0,0,0,0,0,0]), 128);
+	assertEquals(BitStream.prototype.bits2num([0,1,1,0,1,1,1,1]), 111);
+}
+function testBytefromBits() {
+	var byte = new Byte();
+	assertNotUndefined("1",byte.fromBits);
+	assertArrayEquals("2", [],byte.fromBits([1,1,0]));
+	assertEquals("3", 128+64,byte.toByteCode());
+	assertEquals("4", "11000000",byte.toBitsString());
+	
+	assertArrayEquals("5", [],byte.fromBits([0,1,1]));
+	assertEquals("6", 128+64+8+4,byte.toByteCode());
+	assertEquals("7", "11001100",byte.toBitsString());
+	assertArrayEquals("8", [1],byte.fromBits([0,1,1]));
+	assertEquals("9", 128+64+8+4+1,byte.toByteCode());
+	assertEquals("10", "11001101",byte.toBitsString());
+}
+function testBytefromByteCode() {
+	var byte = new Byte();
+	assertNotUndefined("1",byte.fromByteCode);
+	assertArrayEquals("2", [],byte.fromByteCode(6, 3));
+	assertEquals("3", 128+64,byte.toByteCode());
+	assertEquals("4", "11000000",byte.toBitsString());
+	
+	assertArrayEquals("5", [],byte.fromByteCode(3, 3));
+	assertEquals("6", 128+64+8+4,byte.toByteCode());
+	assertEquals("7", "11001100",byte.toBitsString());
+	assertArrayEquals("8", [1],byte.fromByteCode(3, 3));
+	assertEquals("9", 128+64+8+4+1,byte.toByteCode());
+	assertEquals("10", "11001101",byte.toBitsString());
+}
+function testfromByteCode(){
+	var bs = new BitStream();
+	bs.fromByteCode(128, 8);
+	bs.fromByteCode(30, 5);
+	bs.fromByteCode(128, 8);
+	assertEquals("1", "100000001111010000000000", bs.toBitsString());
+}
+function testGet(){
+	var bs = new BitStream();
+	bs.fromHex("ff00");
+	assertArrayEquals("1", [1,1,1], bs.get(0,0,3));
+	assertArrayEquals("2", [1,1,1], bs.get(0,3,3));
+	assertArrayEquals("3", [1,1,0], bs.get(0,6,3));
+	assertArrayEquals("4", [0,0,0], bs.get(1,1,3));
+	assertArrayEquals("5", [0,0,0], bs.get(1,4,3));
+	assertArrayEquals("6", [0], bs.get(1,7,1));
+}
+function testBase64(){
+	var bs = new BitStream();
+	assertEquals(
+		"44G744GS44G744GS44G144GM44G1Zw==",
+		bs.fromBase64("44G744GS44G744GS44G144GM44G1Zw==").toBase64()
+	);
+}
+function testHex(){
+	var bs = new BitStream();
+	assertEquals("1111111100000000", bs.fromHex("ff00").toBitsString());
+	assertEquals(
+		"2e115d0fc2cdda2788af3aecae35da04".toUpperCase(),
+		bs.fromHex("2e115d0fc2cdda2788af3aecae35da04").toHex()
+	);
+}
+function testString(){
+	var bs = new BitStream();
+	assertEquals(
+		"esrkudlvtyclm84otyv;a4owwa/w3prva3q:rb8]rvr:bvrwwww",
+		bs.fromString("esrkudlvtyclm84otyv;a4owwa/w3prva3q:rb8]rvr:bvrwwww").toString()
+	);
+}
+</script>
+</head>
+
+<body>
+<h1>Sample Test File</h1>
+</body>
+
+</html>
