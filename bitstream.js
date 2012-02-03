@@ -66,6 +66,10 @@ BitStream.num2bits = function(num, keta){
 	}
 	return ret;
 };
+BitStream.concat = function(num1, num2, keta2){
+	//なるべく非推奨
+	return (num1<<keta2)+num2;
+};
 BitStream.prototype={
 	bytes: [],
 	ptrByte: 0,
@@ -102,12 +106,11 @@ BitStream.prototype={
 			formerlen = length;
 			latterlen = 0;
 		}
-		var bits = BitStream.num2bits(this.bytes[bytes].substr(offset, formerlen), formerlen);
-//		console.log(this.bytes[bytes].substr(offset, formerlen), bits);
+		var bits = this.bytes[bytes].substr(offset, formerlen);
 		if(latterlen==0){
 			return bits;
 		}else{
-			return bits.concat(BitStream.num2bits(this.bytes[bytes+1].substr(0, latterlen), latterlen));
+			return BitStream.concat(bits, this.bytes[bytes+1].substr(0, latterlen), latterlen);
 		}
 	},
 /*	forEach: function(bits, callback){
@@ -136,22 +139,22 @@ BitStream.prototype={
 		var str="";
 		while(1){
 			if(ptr>=len) break;
-			str+=this.base64String[BitStream.bits2num(this.get(ptr, 0, 6))];
+			str+=this.base64String[this.get(ptr, 0, 6)];
 			var bits=this.get(ptr, 6, 2);
 			ptr++;
 			if(ptr>=len){
-				str+=this.base64String[BitStream.bits2num(bits.concat([0,0,0,0]))]+"==";
+				str+=this.base64String[BitStream.concat(bits, 0, 4)]+"==";
 				break;
 			}
-			str+=this.base64String[BitStream.bits2num(bits.concat(this.get(ptr, 0, 4)))];
+			str+=this.base64String[BitStream.concat(bits, this.get(ptr, 0, 4), 4)];
 			bits=this.get(ptr, 4, 4);
 			ptr++;
 			if(ptr>=len){
-				str+=this.base64String[BitStream.bits2num(bits.concat([0,0]))]+"=";
+				str+=this.base64String[BitStream.concat(bits, 0, 2)]+"=";
 				break;
 			}
-			str+=this.base64String[BitStream.bits2num(bits.concat(this.get(ptr, 0, 2)))];
-			str+=this.base64String[BitStream.bits2num(this.get(ptr, 2, 6))];
+			str+=this.base64String[BitStream.concat(bits, this.get(ptr, 0, 2), 2)];
+			str+=this.base64String[this.get(ptr, 2, 6)];
 			ptr++;
 		}
 		return str;
