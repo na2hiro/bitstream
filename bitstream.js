@@ -12,10 +12,6 @@ Byte.prototype={
 		if(length) mask >>= 8-start-length;
 		return mask;
 	},
-	fromBits: function(bits){
-		//fromByteCodeを使うべき
-		return this.fromByteCode(BitStream.bits2num(bits), bits.length);
-	},
 	toByteCode: function(){
 		return this.bits;
 	},
@@ -25,11 +21,11 @@ Byte.prototype={
 			formerlen = 8-this.ptr;
 			latterlen = length-formerlen;
 			add = byteCode>>latterlen
-			ret = BitStream.num2bits(byteCode & (0xff >> 8-latterlen), latterlen);
+			ret ={byteCode: byteCode & (0xff >> 8-latterlen), len: latterlen};
 		}else{
 			formerlen = length;
 			add = byteCode << 8-(this.ptr+length);
-			ret = [];
+			ret = {byteCode: 0, len: 0};
 		}
 		this.bits |= add;
 		this.ptr+=formerlen;
@@ -37,6 +33,12 @@ Byte.prototype={
 	},
 	toBitsString: function(){
 		return ("00000000"+this.bits.toString(2)).slice(-8);
+	},
+	toString: function(){
+		return String.fromCharCode(this.toByteCode());
+	},
+	toHex: function(){
+		return ("0"+this.toByteCode().toString(16)).slice(-2);
 	},
 	getBit: function(ptr){
 		return this.bits & (128>>ptr) ? 1 : 0;
@@ -49,33 +51,15 @@ Byte.prototype={
 function BitStream(){
 	this.bytes=[];
 }
-BitStream.bits2num = function(bits){
-	var ret=0;
-	bits.forEach(function(bit){
-		ret<<=1;
-		ret|=bit?1:0;
-	});
-	return ret;
-};
-BitStream.num2bits = function(num, keta){
-	//なるべく非推奨
-	var ret=[];
-	for(var i=0; i<keta; i++){
-		ret.unshift(num%2);
-		num>>=1;
-	}
-	return ret;
-};
 BitStream.concat = function(num1, num2, keta2){
-	//なるべく非推奨
 	return (num1<<keta2)+num2;
 };
+BitStream.base64String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+BitStream.hexString = "0123456789abcdef";
 BitStream.prototype={
 	bytes: [],
 	ptrByte: 0,
 	ptrBit: 0,
-	base64String: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-	hexString: "0123456789ABCDEF",
 	fill: function(){
 		if(this.bytes.length==0)return;
 		this.bytes[this.bytes.length-1].fill();
@@ -113,22 +97,17 @@ BitStream.prototype={
 			return BitStream.concat(bits, this.bytes[bytes+1].substr(0, latterlen), latterlen);
 		}
 	},
-/*	forEach: function(bits, callback){
-		while(1){
-			callback();
-		}
-	},*/
 	toString: function(){
 		this.fill();
-		var len=this.bytes.length, str="";
-		for(var i=0; i<len; i++){
-			str+=String.fromCharCode(this.bytes[i].toByteCode());
-		}
-		return str;
+		return this.bytes.map(function(byte){
+			return byte.toString();
+		}).join("");
 	},
 	toBitsString: function(){
 		this.fill();
-		return this.bytes.map(function(byte){return byte.toBitsString()}).join("");
+		return this.bytes.map(function(byte){
+			return byte.toBitsString();
+		}).join("");
 	},
 	toBase64: function(){
 		//000000|11
@@ -139,42 +118,37 @@ BitStream.prototype={
 		var str="";
 		while(1){
 			if(ptr>=len) break;
-			str+=this.base64String[this.get(ptr, 0, 6)];
+			str+=BitStream.base64String[this.get(ptr, 0, 6)];
 			var bits=this.get(ptr, 6, 2);
 			ptr++;
 			if(ptr>=len){
-				str+=this.base64String[BitStream.concat(bits, 0, 4)]+"==";
+				str+=BitStream.base64String[BitStream.concat(bits, 0, 4)]+"==";
 				break;
 			}
-			str+=this.base64String[BitStream.concat(bits, this.get(ptr, 0, 4), 4)];
+			str+=BitStream.base64String[BitStream.concat(bits, this.get(ptr, 0, 4), 4)];
 			bits=this.get(ptr, 4, 4);
 			ptr++;
 			if(ptr>=len){
-				str+=this.base64String[BitStream.concat(bits, 0, 2)]+"=";
+				str+=BitStream.base64String[BitStream.concat(bits, 0, 2)]+"=";
 				break;
 			}
-			str+=this.base64String[BitStream.concat(bits, this.get(ptr, 0, 2), 2)];
-			str+=this.base64String[this.get(ptr, 2, 6)];
+			str+=BitStream.base64String[BitStream.concat(bits, this.get(ptr, 0, 2), 2)];
+			str+=BitStream.base64String[this.get(ptr, 2, 6)];
 			ptr++;
 		}
 		return str;
 	},
 	toHex: function(){
 		this.fill();
-		var len=this.bytes.length;
-		var str="";
-		for(var i=0; i<len; i++){
-			var byteCode = this.bytes[i].toByteCode();
-			str+=this.hexString[byteCode>>4];
-			str+=this.hexString[byteCode%(1<<4)];
-		}
-		return str;
+		return this.bytes.map(function(byte){
+			return byte.toHex();
+		}).join("");
 	},
 	fromHex: function(hexString, add){
 		if(!add) this.clear();
-		hexString=hexString.toUpperCase();
+		hexString=hexString.toLowerCase();
 		for(var i=0; i<hexString.length; i++){
-			var key=this.hexString.indexOf(hexString[i]);
+			var key=BitStream.hexString.indexOf(hexString[i]);
 			if(key==-1) throw "Illegal char "+hexString[i];
 			this.fromByteCode(key, 4);
 		}
@@ -193,7 +167,7 @@ BitStream.prototype={
 					mode=j;
 					break;
 				}
-				var num=this.base64String.indexOf(str);
+				var num=BitStream.base64String.indexOf(str);
 				if(num==-1) throw "Illegal char "+base64String[i];
 				strs.push(num);
 				i++;
@@ -236,29 +210,27 @@ BitStream.prototype={
 	},
 	fromByteCode: function(byteCode, bits){
 		if(bits>8) throw "バイトコードが8桁を超えています";
-//		console.log(this.bytes.map(function(obj){return obj.toByteCode()}).join(","), byteCode, bits);
 		if(this.bytes.length==0) this.bytes.push(new Byte());
 		var ret=this.bytes[this.bytes.length-1].fromByteCode(byteCode, bits);
-		if(!ret || ret.length==0) return;
+		if(ret.len==0) return;
 		var byte = new Byte();
-		byte.fromBits(ret);
+		byte.fromByteCode(ret.byteCode, ret.len);
 		this.bytes.push(byte);
 		return this;
 	},
 	fromBit: function(bit){
-		return this.fromBits([bit]);
-	},
-	fromBits: function(bits){
-		if(this.bytes.length==0) this.bytes.push(new Byte());
-		while(1){
-			bits = this.bytes[this.bytes.length-1].fromBits(bits);
-			if(!bits) break;
-			this.bytes.push(new Byte());
-		}
-		return this;
+		return this.fromByteCode(bit, 1);
 	},
 	fromBitsString: function(bitsString){
-		return this.fromBits(bitsString.split("").map(function(code){return code=="1"?true:false;}));
+		while(1){
+			if(bitsString.length<=8){
+				this.fromByteCode(parseInt(bitsString, 2), bitsString.length);
+				break;
+			}
+			this.fromByteCode(parseInt(bitsString.substr(0,8), 2), 8);
+			bitsString = bitsString.substr(8);
+		}
+		return this;
 	},
 	clear: function(){
 		this.bytes=[];
