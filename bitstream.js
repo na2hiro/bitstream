@@ -4,7 +4,7 @@ function Byte(){
 Byte.prototype={
 	bits: 0,
 	ptr: 0,
-	complete: function(){
+	filled: function(){
 		return this.ptr==8;
 	},
 	substr: function(start, length){
@@ -40,6 +40,13 @@ Byte.prototype={
 	toHex: function(){
 		return ("0"+this.toByteCode().toString(16)).slice(-2);
 	},
+	fromHex: function(hexString){
+		if(hexString.length==1){
+			return this.fromByteCode(parseInt(hexString, 16), 4);
+		}else{
+			return this.fromByteCode(parseInt(hexString, 16), 8);
+		}
+	},
 	getBit: function(ptr){
 		return this.bits & (128>>ptr) ? 1 : 0;
 	},
@@ -55,7 +62,6 @@ BitStream.concat = function(num1, num2, keta2){
 	return (num1<<keta2)+num2;
 };
 BitStream.base64String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-BitStream.hexString = "0123456789abcdef";
 BitStream.prototype={
 	bytes: [],
 	ptrByte: 0,
@@ -68,7 +74,7 @@ BitStream.prototype={
 		this.bytes[num].getByteCode();
 	},
 	checkBorder: function(){
-		return this.bytes.length==0 || this.bytes[this.bytes.length-1].complete();
+		return this.bytes.length==0 || this.bytes[this.bytes.length-1].filled();
 	},
 	rewind: function(){
 		this.ptrByte = this.ptrBit = 0;
@@ -146,11 +152,10 @@ BitStream.prototype={
 	},
 	fromHex: function(hexString, add){
 		if(!add) this.clear();
-		hexString=hexString.toLowerCase();
-		for(var i=0; i<hexString.length; i++){
-			var key=BitStream.hexString.indexOf(hexString[i]);
-			if(key==-1) throw "Illegal char "+hexString[i];
-			this.fromByteCode(key, 4);
+		var str, i=0;
+		while(str=hexString.substr(i, 2)){
+			this.fromByteCode(parseInt(str, 16), str.length*4);
+			i+=2;
 		}
 		return this;
 	},
@@ -159,7 +164,7 @@ BitStream.prototype={
 		if(!this.checkBorder()) throw "オフセット境界エラー";
 		var i=0;
 		while(i<base64String.length){
-			var strs=[]
+			var strs=[];
 			var mode;
 			for(var j=0; j<4; j++){
 				var str=base64String[i];
